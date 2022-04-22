@@ -7,8 +7,10 @@ ServoInputPin<2> channel;
 // Setup servo ports and variables
 Servo servo1;
 Servo servo2;
-#define servoPort1 7
-#define servoPort2 6
+Servo servo3;
+#define servoPort1 7 // upper deck
+#define servoPort2 6 // trapdoor
+#define servoPort3 5 // lock servo
 int currentDegree = 0;
 
 // Define stepper motor connections and steps per revolution:
@@ -17,8 +19,8 @@ int currentDegree = 0;
 #define stepsPerRevolution 200
 
 // Setup ultrasonic sensor (HC-SR04) variables
-#define echoPin 2 // attach pin D2 Arduino to pin Echo of HC-SR04
-#define trigPin 3 //attach pin D3 Arduino to pin Trig of HC-SR04
+#define echoPin 3 // attach pin D3 Arduino to pin Echo of HC-SR04
+#define trigPin 4 //attach pin D4 Arduino to pin Trig of HC-SR04
 long duration; // variable for the duration of sound wave travel
 int distance; // variable for the distance measurement
 
@@ -29,8 +31,9 @@ void setup() {
   Serial.print("start");
 
   // Setup Servo Motors
-  servo1.attach(servoPort1);
+  servo1.attach(servoPort1); 
   servo2.attach(servoPort2); 
+  servo3.attach(servoPort3); 
 
   // Setup Stepper Motor Pins
   pinMode(stepPin, OUTPUT);
@@ -39,23 +42,31 @@ void setup() {
   // Setup Ultrasonic Sensor
   pinMode(trigPin, OUTPUT); // Sets the trigPin as an OUTPUT
   pinMode(echoPin, INPUT); // Sets the echoPin as an INPUT
+
+  //rotateDegrees(180, 1); // Rotate servo 1 by 180 degrees
+  //rotateDegrees(90, 2);  // rotate servo 2 by 90 degrees
+  //rotateDegrees(180, 3);  // rotate servo 3 by 45 degrees
+
+  //stepper();
 }
 
 void loop() {
   // Check for signal from radio in a loop
   boolean deploy = channel.getBoolean();
-  if (deploy == true) {
+  if (deploy == false) {
     Serial.print("Deploying...\n");
     
     // Run stepper if package not on trapdoor
-    while (sensorPulse > 10) {
-      stepper();             // Run stepper demo program
+    while (sensorPulse() > 10) {
+      //stepper();             // Run stepper demo program
+      digitalWrite(dirPin, HIGH);
       delay(1000);           // wait 1 second
     }
 
     // Open trapdoor once package is ready
     rotateDegrees(180, 1); // Rotate servo 1 by 180 degrees
     rotateDegrees(90, 2);  // rotate servo 2 by 90 degrees
+    rotateDegrees(45, 2);   // rotate servo 3 by 45 degrees
     delay(3000);           // wait 3 seconds to avoid over-deploying
   }
 }
@@ -96,6 +107,11 @@ void rotateDegrees(int degrees, int servo) {
     servo2.write(stationary);
     delay(degrees*2);
     servo2.write(dir);
+  }
+    if (servo == 3){
+    servo3.write(stationary);
+    delay(degrees*2);
+    servo3.write(dir);
   }
 
   // Update the current degree
@@ -172,5 +188,5 @@ int sensorPulse() {
   Serial.print("Distance: ");
   Serial.print(distance);
   Serial.println(" cm");
-  return distance
+  return distance;
 }
