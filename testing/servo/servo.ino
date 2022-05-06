@@ -6,13 +6,13 @@ int currentDegree = 0;
 
 void setup() {
   servo.attach(servoPort);
-  rotateDegrees(180);
-  delay(5);
-  rotateDegrees(180);
 
 }
 
 void loop() {
+  rotateDegrees(180);
+  delay(50);
+  rotateDegrees(180);
 }
 
 // Rotate the servo to a target degree

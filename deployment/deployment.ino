@@ -13,6 +13,13 @@ Servo servo3;
 #define servoPort3 5 // lock servo
 int currentDegree = 0;
 
+
+// Counting packages
+int totalPackages = 6;
+int dropLevel = 3;
+int currentPackages = 0;
+
+
 // Define stepper motor connections and steps per revolution:
 #define dirPin A3
 #define stepPin A4
@@ -28,7 +35,7 @@ void setup() {
   // Setup Serial Monitor
   // open the serial port at 9600 bps:
   Serial.begin(9600);
-  Serial.print("start");
+  Serial.print("start\n");
 
   // Setup Servo Motors
   servo1.attach(servoPort1); 
@@ -42,58 +49,56 @@ void setup() {
   // Setup Ultrasonic Sensor
   pinMode(trigPin, OUTPUT); // Sets the trigPin as an OUTPUT
   pinMode(echoPin, INPUT); // Sets the echoPin as an INPUT
-
-  //rotateDegrees(180, 1); // Rotate servo 1 by 180 degrees
-  //rotateDegrees(90, 2);  // rotate servo 2 by 90 degrees
-  //rotateDegrees(180, 3);  // rotate servo 3 by 45 degrees
-
-  //stepper();
 }
 
 void loop() {
   // Check for signal from radio in a loop
   boolean deploy = channel.getBoolean();
-  if (deploy == false) {
+  deploy = true;
+  if (deploy == true) {
+    deploy = false;
     Serial.print("Deploying...\n");
+
+    if (currentPackages > dropLevel) {
+      rotateDegrees(180, 1); // drop upper deck packages
+      delay(1000);           // wait 1 second
+    }
+    
+    rotateDegrees(45, 3);  // unlock lock servo
     
     // Run stepper if package not on trapdoor
     while (sensorPulse() > 10) {
-      //stepper();             // Run stepper demo program
-      digitalWrite(dirPin, HIGH);
-      delay(1000);           // wait 1 second
+      stepper();           // Run stepper demo program
+      Serial.print("Stepper should be running\n");
+      delay(1000);         // wait 1 second
     }
+    
+    rotateDegrees(-45, 3); // lock lock servo
+    delay(1000);           // wait 1 second
 
-    // Open trapdoor once package is ready
-    rotateDegrees(180, 1); // Rotate servo 1 by 180 degrees
-    rotateDegrees(90, 2);  // rotate servo 2 by 90 degrees
-    rotateDegrees(45, 2);   // rotate servo 3 by 45 degrees
-    delay(3000);           // wait 3 seconds to avoid over-deploying
+    rotateDegrees(90, 2);  // open trapdoor
+    delay(3000);           // wait 3 seconds
+    rotateDegrees(-90, 2); // close trapdoor
+
+    currentPackages += 1;
+    Serial.print(currentPackages);
+    Serial.print(" packages deployed\nFinished Deploying\n");
   }
-}
-
-// Rotate the servo to a target degree
-void rotateToDegree(int targetDegree, int servo) {
-  // Normalise the target degree
-  while (targetDegree < 0) targetDegree = targetDegree + 360;
-  targetDegree = targetDegree % 360;
-
-  // Calculate the distancce to target and rotate
-  int degrees = targetDegree - currentDegree;
-  rotateDegrees(degrees, servo);
+  
 }
 
 // Rotate the servo x degrees
 void rotateDegrees(int degrees, int servo) {
   // Set Constants
-  int forward = 90;
+  int stationary = 90;
   int backward = 180;
-  int stationary = 0;
+  int forward = 0;
 
   // Set offsets and directions
   int offset = 2;
   int dir = forward;
   if (degrees < 0){
-    //degrees = degrees * -1;
+    degrees = degrees * -1;
     dir = backward;
   }
 
@@ -104,42 +109,21 @@ void rotateDegrees(int degrees, int servo) {
     servo1.write(dir);
   }
   if (servo == 2){
-    servo2.write(stationary);
-    delay(degrees*2);
     servo2.write(dir);
+    delay(degrees*2);
+    servo2.write(stationary);
   }
-    if (servo == 3){
+  if (servo == 3){
     servo3.write(stationary);
     delay(degrees*2);
     servo3.write(dir);
   }
-
-  // Update the current degree
-  currentDegree = currentDegree + degrees;
-  if (currentDegree > 360) currentDegree - 360;
 }
 
 
 
 // Run a demo program on the servo motor
 void stepper() {
-  // Set the spinning direction clockwise:
-  digitalWrite(dirPin, HIGH);
-
-  // Set the spinning direction counterclockwise:
-  digitalWrite(dirPin, LOW);
-
-  // Spin the stepper motor 1 revolution quickly:
-  for (int i = 0; i < stepsPerRevolution; i++) {
-    // These four lines result in 1 step:
-    digitalWrite(stepPin, HIGH);
-    delayMicroseconds(1000);
-    digitalWrite(stepPin, LOW);
-    delayMicroseconds(1000);
-  }
-
-  delay(1000);
-
   // Set the spinning direction clockwise:
   digitalWrite(dirPin, HIGH);
 
@@ -151,22 +135,6 @@ void stepper() {
     digitalWrite(stepPin, LOW);
     delayMicroseconds(500);
   }
-
-  delay(1000);
-
-  // Set the spinning direction counterclockwise:
-  digitalWrite(dirPin, LOW);
-
-  //Spin the stepper motor 5 revolutions fast:
-  for (int i = 0; i < 5 * stepsPerRevolution; i++) {
-    // These four lines result in 1 step:
-    digitalWrite(stepPin, HIGH);
-    delayMicroseconds(500);
-    digitalWrite(stepPin, LOW);
-    delayMicroseconds(500);
-  }
-
-  delay(1000);
 }
 
 int sensorPulse() {
