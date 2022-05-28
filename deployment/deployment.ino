@@ -54,7 +54,7 @@ void setup() {
 void loop() {
   // Check for signal from radio in a loop
   boolean deploy = channel.getBoolean();
-  deploy = true;
+  deploy = false;
   if (deploy == true) {
     deploy = false;
     Serial.print("Deploying...\n");
